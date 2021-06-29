@@ -2,24 +2,48 @@
 
 #include <unistd.h>
 
+#include <string>
+#include <vector>
+
 #include "linux_parser.h"
 
 using std::stof;
+using std::string;
+using std::vector;
 
 // DONE: Return the aggregate CPU utilization   OKEY
 float Processor::Utilization() {
-  long total_before = LinuxParser::Jiffies();
-  long active_before = LinuxParser::ActiveJiffies();
+  vector<string> previous = LinuxParser::CpuUtilization();
+  float PrevIdle = stof(previous[LinuxParser::CPUStates::kIdle_]) +
+                   stof(previous[LinuxParser::CPUStates::kIOwait_]);
 
-  usleep(100000);  // microseconds --> 100 milliseconds
+  float PrevNoIdle = stof(previous[LinuxParser::CPUStates::kUser_]) +
+                     stof(previous[LinuxParser::CPUStates::kNice_]) +
+                     stof(previous[LinuxParser::CPUStates::kSystem_]) +
+                     stof(previous[LinuxParser::CPUStates::kIRQ_]) +
+                     stof(previous[LinuxParser::CPUStates::kSoftIRQ_]) +
+                     stof(previous[LinuxParser::CPUStates::kSteal_]);
 
-  float total_after = LinuxParser::Jiffies();
-  float active_after = LinuxParser::ActiveJiffies();
-  // long total = active_after - active_before;
-  // long active = total_after - total_before;
-  if (total_after == 0) {
-    return 0.0;
-  } else {
-    return float(active_after) / float(total_after);
-  }
+  float PrevTotal = PrevIdle + PrevNoIdle;
+
+  usleep(1000000);  // microseconds --> 100 milliseconds
+
+  vector<string> current = LinuxParser::CpuUtilization();
+  float CurrentIdle = stof(current[LinuxParser::CPUStates::kIdle_]) +
+                      stof(current[LinuxParser::CPUStates::kIOwait_]);
+
+  float CurrentNoIdle = stof(current[LinuxParser::CPUStates::kUser_]) +
+                        stof(current[LinuxParser::CPUStates::kNice_]) +
+                        stof(current[LinuxParser::CPUStates::kSystem_]) +
+                        stof(current[LinuxParser::CPUStates::kIRQ_]) +
+                        stof(current[LinuxParser::CPUStates::kSoftIRQ_]) +
+                        stof(current[LinuxParser::CPUStates::kSteal_]);
+
+  float CurrentTotal = CurrentIdle + CurrentNoIdle;
+
+  float Total = CurrentTotal - PrevTotal;
+
+  float Idled = CurrentIdle - PrevIdle;
+
+  return (Total - Idled) / Total * 100;
 }
