@@ -99,51 +99,81 @@ long LinuxParser::UpTime() {
     std::getline(stream, line);
     std::istringstream linestream(line);
     linestream >> value;
-    return stol(value);
+    if (value != "") {
+      return stol(value);
+    } else {
+      return 0;
+    }
   }
   return 0;
 }
 
 // DONE: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() {
-  long jiffies = 0;
-  vector<string> values = LinuxParser::CpuUtilization();
-  for (int i = CPUStates::kUser_; i <= CPUStates::kSteal_; i++) {
-    jiffies += stol(values[i]);
-  }
-  return jiffies;
+  return LinuxParser::ActiveJiffies() + LinuxParser::IdleJiffies();
 }
 
 // DONE: Read and return the number of active jiffies for a PID   OKEY
 long LinuxParser::ActiveJiffies(int pid) {
   string line, value;
-  long jiffies = 0;
-  std::ifstream stream(kProcDirectory + "/" + to_string(pid) + "/" +
-                       kStatFilename);
+  long jiffies{0};
+  std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    for (int i = ProcStates::kPid_; i <= ProcStates::kCStime_; i++) {
+    for (int i = 0; i < 17; i++) {
       linestream >> value;
-      if (i == ProcStates::kUtime_ || i == ProcStates::kStime_ ||
-          i == ProcStates::kCUtime_ || i == ProcStates::kCStime_) {
-        jiffies += stol(value);
+      if (value != "") {
+        if (i == 13 || i == 14 || i == 15 || i == 16) {
+          jiffies += stol(value);
+        }
       }
     }
+    return jiffies;
   }
   return jiffies;
 }
 
 // DONE: Read and return the number of active jiffies for the system   OKEY
 long LinuxParser::ActiveJiffies() {
-  return LinuxParser::Jiffies() - LinuxParser::IdleJiffies();
+  string line, value;
+  long jiffies{0};
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
+    std::istringstream linestream(line);
+    for (int i = CPUStates::kUser_; i <= CPUStates::kSteal_; i++) {
+      linestream >> value;
+      if (value != "") {
+        if (i != CPUStates::kIdle_ || i != CPUStates::kIOwait_) {
+          jiffies += stol(value);
+        }
+      }
+    }
+    return jiffies;
+  }
+  return jiffies;
 }
 
 // DONE: Read and return the number of idle jiffies for the system   OKEY
 long LinuxParser::IdleJiffies() {
-  vector<string> cpu = LinuxParser::CpuUtilization();
-  long idle = stol(cpu[CPUStates::kIdle_]) + stol(cpu[CPUStates::kIOwait_]);
-  return idle;
+  string line, value;
+  long jiffies{0};
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
+    std::istringstream linestream(line);
+    for (int i = CPUStates::kUser_; i <= CPUStates::kSteal_; i++) {
+      linestream >> value;
+      if (value != "") {
+        if (i == CPUStates::kIdle_ || i == CPUStates::kIOwait_) {
+          jiffies += stol(value);
+        }
+      }
+    }
+    return jiffies;
+  }
+  return jiffies;
 }
 
 // DONE: Read and return CPU utilization   OKEY
@@ -273,7 +303,7 @@ long LinuxParser::UpTime(int pid) {
     std::istringstream linestream(line);
     int a = 0;
     while (linestream >> value) {
-      if (a == 21) {
+      if (a == 21 && value != "") {
         return stol(value);  // sysconf(_SC_CLK_TCK);
         // Una vez que alcanzamos el valor de la posición 21 (el que queremos)
         // nos indica la cantidad de tics de reloj que suceden, por lo que
