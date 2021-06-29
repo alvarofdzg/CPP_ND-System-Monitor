@@ -104,11 +104,11 @@ long LinuxParser::UpTime() {
   return 0;
 }
 
-// DONE: Read and return the number of jiffies for the system   OKEY
+// DONE: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() {
-  long int jiffies = 0;
+  long jiffies = 0;
   vector<string> values = LinuxParser::CpuUtilization();
-  for (int i = kUser_; i <= kSteal_; i++) {
+  for (int i = CPUStates::kUser_; i <= CPUStates::kSteal_; i++) {
     jiffies += stol(values[i]);
   }
   return jiffies;
@@ -123,9 +123,10 @@ long LinuxParser::ActiveJiffies(int pid) {
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    for (int i = kPid_; i <= kCStime_; i++) {
+    for (int i = ProcStates::kPid_; i <= ProcStates::kCStime_; i++) {
       linestream >> value;
-      if (i == kUtime_ || i == kStime_ || i == kCUtime_ || i == kCStime_) {
+      if (i == ProcStates::kUtime_ || i == ProcStates::kStime_ ||
+          i == ProcStates::kCUtime_ || i == ProcStates::kCStime_) {
         jiffies += stol(value);
       }
     }
@@ -141,9 +142,7 @@ long LinuxParser::ActiveJiffies() {
 // DONE: Read and return the number of idle jiffies for the system   OKEY
 long LinuxParser::IdleJiffies() {
   vector<string> cpu = LinuxParser::CpuUtilization();
-  long idle = 0;
-  idle += stol(cpu[kIdle_]);
-  idle += stol(cpu[kIOwait_]);
+  long idle = stol(cpu[CPUStates::kIdle_]) + stol(cpu[CPUStates::kIOwait_]);
   return idle;
 }
 
