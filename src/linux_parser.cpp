@@ -145,7 +145,7 @@ long LinuxParser::ActiveJiffies() {
     for (int i = CPUStates::kUser_; i <= CPUStates::kSteal_; i++) {
       linestream >> value;
       if (value != "") {
-        if (i != CPUStates::kIdle_ || i != CPUStates::kIOwait_) {
+        if (i != CPUStates::kIdle_ && i != CPUStates::kIOwait_) {
           jiffies += stol(value);
         }
       }
