@@ -15,6 +15,26 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+template <typename T>
+T findValueByKey(string const& keyFilter, string const& filename) {
+  string line, key;
+  T value;
+
+  std::ifstream stream(LinuxParser::kProcDirectory + filename);
+  if (stream.is_open()) {
+    while (std::getline(stream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == keyFilter) {
+          stream.close();
+          return value;
+        }
+      }
+    }
+  }
+  return value;
+};
+
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::OperatingSystem() {
   string line;
@@ -73,22 +93,12 @@ vector<int> LinuxParser::Pids() {
 
 // DONE: Read and return the system memory utilization   OKEY
 float LinuxParser::MemoryUtilization() {
-  float total, free;
-  string line, key, value;
-  std::ifstream stream(kProcDirectory + kMeminfoFilename);
-  if (stream.is_open()) {
-    while (std::getline(stream, line)) {
-      std::istringstream linestream(line);
-      linestream >> key >> value;
-      if (key == "MemTotal:") {
-        total = stof(value);
-      } else if (key == "MemFree:") {
-        free = stof(value);
-      }
-    }
-    return (total - free) / total;
-  }
-  return 0.0;
+  string memTotal = "MemTotal:";
+  string memFree = "MemFree:";
+  float total = findValueByKey<float>(memTotal, kMeminfoFilename);
+  float free = findValueByKey<float>(memFree, kMeminfoFilename);
+
+  return (total - free) / total;
 }
 
 // DONE: Read and return the system uptime   OKEY
@@ -100,6 +110,7 @@ long LinuxParser::UpTime() {
     std::istringstream linestream(line);
     linestream >> value;
     if (value != "") {
+      stream.close();
       return stol(value);
     } else {
       return 0;
@@ -129,6 +140,7 @@ long LinuxParser::ActiveJiffies(int pid) {
         }
       }
     }
+    stream.close();
     return jiffies;
   }
   return jiffies;
@@ -150,6 +162,7 @@ long LinuxParser::ActiveJiffies() {
         }
       }
     }
+    stream.close();
     return jiffies;
   }
   return jiffies;
@@ -171,6 +184,7 @@ long LinuxParser::IdleJiffies() {
         }
       }
     }
+    stream.close();
     return jiffies;
   }
   return jiffies;
@@ -195,36 +209,16 @@ vector<string> LinuxParser::CpuUtilization() {
 
 // DONE: Read and return the total number of processes   OKEY
 int LinuxParser::TotalProcesses() {
-  int processes;
-  string line, key, value;
-  std::ifstream stream(kProcDirectory + kStatFilename);
-  if (stream.is_open()) {
-    while (std::getline(stream, line)) {
-      std::istringstream linestream(line);
-      linestream >> key >> value;
-      if (key == "processes") {
-        processes = stoi(value);
-      }
-    }
-  }
-  return processes;
+  string processes = "processes";
+  int value = findValueByKey<int>(processes, kStatFilename);
+  return value;
 }
 
 // DONE: Read and return the number of running processes   OKEY
 int LinuxParser::RunningProcesses() {
-  int processes;
-  string line, key, value;
-  std::ifstream stream(kProcDirectory + kStatFilename);
-  if (stream.is_open()) {
-    while (std::getline(stream, line)) {
-      std::istringstream linestream(line);
-      linestream >> key >> value;
-      if (key == "procs_running") {
-        processes = stoi(value);
-      }
-    }
-  }
-  return processes;
+  string processes = "procs_running";
+  int value = findValueByKey<int>(processes, kStatFilename);
+  return value;
 }
 
 // DONE: Read and return the command associated with a process   OKEY
@@ -239,6 +233,7 @@ string LinuxParser::Command(int pid) {
 }
 
 // DONE: Read and return the memory used by a process   OKEY
+
 string LinuxParser::Ram(int pid) {
   string line, key, ram;
   std::stringstream ram2;
@@ -248,7 +243,7 @@ string LinuxParser::Ram(int pid) {
     while (std::getline(stream, line)) {
       std::istringstream linestream(line);
       linestream >> key >> ram;
-      if (key == "VmSize:") {
+      if (key == "VmData:") {
         // return to_string(ram/1000);
         ram2 << std::fixed << std::setprecision(3) << stof(ram) / 1000;
         return ram2.str();

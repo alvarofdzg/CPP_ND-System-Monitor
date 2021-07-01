@@ -45,5 +45,5 @@ float Processor::Utilization() {
 
   float Idled = CurrentIdle - PrevIdle;
 
-  return (Total - Idled) / Total * 100;
+  return (Total - Idled) / Total;
 }
